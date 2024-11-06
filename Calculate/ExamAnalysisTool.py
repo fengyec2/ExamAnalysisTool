@@ -22,7 +22,7 @@ class ExamAnalysisTool:
         self.root.after(100, self.process_queue)
 
     def create_widgets(self):
-        tk.Label(self.root, text="程序版本：v1.2.0\n请在下方选择成绩文件").pack(pady=10)
+        tk.Label(self.root, text="程序版本：v1.2.1\n请在下方选择成绩文件").pack(pady=10)
 
         self.file_listbox = tk.Listbox(self.root, selectmode=tk.MULTIPLE, width=50)
         self.file_listbox.pack(pady=5)
@@ -36,6 +36,9 @@ class ExamAnalysisTool:
         self.line_chart_button = tk.Button(self.root, text="生成年级排名折线图", command=self.start_generate_ranking_chart)
         self.line_chart_button.pack(pady=5)
 
+        self.create_report_button = tk.Button(self.root, text="生成历次考试成绩单", command=self.start_generate_report)
+        self.create_report_button.pack(pady=5)
+
         self.cancel_button = tk.Button(self.root, text="取消", command=self.cancel_operation, state=tk.DISABLED)
         self.cancel_button.pack(pady=5)
 
@@ -48,7 +51,8 @@ class ExamAnalysisTool:
             return
         self.file_listbox.delete(0, tk.END)
         for filepath in self.filepaths:
-            self.file_listbox.insert(tk.END, filepath)
+            file_name = os.path.basename(filepath)  # 只获取文件名
+            self.file_listbox.insert(tk.END, file_name)  # 插入文件名而不是完整路径
 
     def start_calculate_progress(self):
         self.cancel_button.config(state=tk.NORMAL)
@@ -306,6 +310,100 @@ class ExamAnalysisTool:
             self.queue.put(("error", f"处理过程中发生错误: {e}"))
             self.enable_buttons()  # 任务完成后启用按钮
 
+    def start_generate_report(self):
+        self.cancel_button.config(state=tk.NORMAL)
+        self.is_canceled = False  # 重置取消标志
+        self.progress_bar['value'] = 0  # 重置进度条
+        self.queue.queue.clear()  # 清空队列
+
+        self.disable_buttons()  # 禁用功能按钮
+        threading.Thread(target=self._generate_report_thread).start()
+
+    def _generate_report_thread(self):
+        if not self.filepaths:
+            self.queue.put(("error", "请先选择文件"))
+            self.enable_buttons()  # 任务完成后启用按钮
+            return
+
+        combined_df = pd.DataFrame()
+    
+        for file in self.filepaths:
+            if self.is_canceled:
+                self.queue.put(("info", "操作已取消"))
+                self.enable_buttons()  # 任务完成后启用按钮
+                return
+
+            try:
+                df = pd.read_excel(file)
+            except Exception as e:
+                self.queue.put(("error", f"无法读取文件 {os.path.basename(file)}: {str(e)}"))
+                self.enable_buttons()
+                return
+
+            # 数据合法性检查
+            if '考试编号' not in df.columns or '同学' not in df.columns or '年级排名' not in df.columns:
+                self.queue.put(("error", f"文件 {os.path.basename(file)} \n\n缺少必要的列: '考试编号', '同学', '年级排名'"))
+                self.enable_buttons()  # 任务完成后启用按钮
+                return
+
+            # 合并数据
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+
+        if combined_df.empty:
+            self.queue.put(("warning", "没有有效的数据进行生成报告"))
+            self.enable_buttons()  # 任务完成后启用按钮
+            return
+
+        # 对数据进行排序
+        combined_df.sort_values(by=['同学', '考试编号'], inplace=True)
+
+        # 获取所有同学的唯一列表
+        students = combined_df['同学'].unique()
+
+        progress_data = []
+
+        # 为每个同学生成报表
+        for student in students:
+            student_data = combined_df[combined_df['同学'] == student]
+            progress_data.append(student_data)
+        
+            if self.is_canceled:
+                self.queue.put(("info", "操作已取消"))
+                self.enable_buttons()  # 任务完成后启用按钮
+                return
+
+        # 询问用户选择保存目录
+        save_directory = filedialog.askdirectory(title="选择保存目录")
+        if not save_directory:  # 如果用户取消选择
+            self.enable_buttons()  # 任务完成后启用按钮
+            return
+
+        # 保存每个同学的成绩
+        for student in students:
+            student_report = combined_df[combined_df['同学'] == student]
+            output_file = os.path.join(save_directory, f'{student}_成绩单.xlsx')
+
+            # 检查文件是否已被占用
+            try:
+                # 尝试打开文件以检查是否被占用
+                if os.path.exists(output_file):
+                    with open(output_file, 'a'):
+                        pass
+                
+                # 尝试保存文件
+                student_report.to_excel(output_file, index=False)
+
+            except PermissionError:
+                self.queue.put(("error", f"无法保存文件，因为文件 {output_file} 已被占用或打开。"))
+                continue  # 跳过此文件的保存
+
+            # 更新进度条
+            self.queue.put(("progress", (len(progress_data) / len(students)) * 100))  # 保持进度在 0-100 之间
+
+        self.queue.put(("info", "历次考试成绩单已生成。"))
+        self.progress_bar['value'] = 0
+        self.enable_buttons()  # 任务完成后启用按钮
+
     def cancel_operation(self):
         self.is_canceled = True  # 设置取消标志
         self.cancel_button.config(state=tk.DISABLED)
@@ -314,12 +412,14 @@ class ExamAnalysisTool:
         self.input_file_button.config(state=tk.NORMAL)
         self.analyze_button.config(state=tk.NORMAL)
         self.line_chart_button.config(state=tk.NORMAL)
+        self.create_report_button.config(state=tk.NORMAL)
         self.cancel_button.config(state=tk.DISABLED)  # 确保取消按钮禁用
 
     def disable_buttons(self):
         self.input_file_button.config(state=tk.DISABLED)
         self.analyze_button.config(state=tk.DISABLED)
         self.line_chart_button.config(state=tk.DISABLED)
+        self.create_report_button.config(state=tk.DISABLED)
         self.cancel_button.config(state=tk.NORMAL)  # 启用取消按钮
 
     def process_queue(self):
