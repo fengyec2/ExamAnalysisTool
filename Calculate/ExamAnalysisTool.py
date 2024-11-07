@@ -22,7 +22,7 @@ class ExamAnalysisTool:
         self.root.after(100, self.process_queue)
 
     def create_widgets(self):
-        tk.Label(self.root, text="程序版本：v1.2.1\n请在下方选择成绩文件").pack(pady=10)
+        tk.Label(self.root, text="程序版本：v1.2.1\n\n已选择的成绩文件：").pack(pady=10)
 
         self.file_listbox = tk.Listbox(self.root, selectmode=tk.MULTIPLE, width=50)
         self.file_listbox.pack(pady=5)
@@ -30,7 +30,7 @@ class ExamAnalysisTool:
         self.input_file_button = tk.Button(self.root, text="选择文件", command=self.load_input_files)
         self.input_file_button.pack(pady=5)
 
-        self.analyze_button = tk.Button(self.root, text="计算进退步系数", command=self.start_calculate_progress)
+        self.analyze_button = tk.Button(self.root, text="生成进退步系数报表", command=self.start_calculate_progress)
         self.analyze_button.pack(pady=5)
 
         self.line_chart_button = tk.Button(self.root, text="生成年级排名折线图", command=self.start_generate_ranking_chart)
@@ -289,7 +289,7 @@ class ExamAnalysisTool:
 
                     # 更新进度条
                     self.queue.put(("progress", ((idx + 1) / len(students)) * 100))  # 输出文件后更新进度条
-                    self.root.update()  # 确保 GUI 更新
+
                     if self.is_canceled:
                         self.queue.put(("info", "操作已取消"))
                         self.enable_buttons()  # 任务完成后启用按钮
