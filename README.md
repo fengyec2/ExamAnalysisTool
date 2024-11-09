@@ -18,8 +18,7 @@
 
 ## 需求
 
-- Python 3.6 及以上版本
-- 程序使用 Python 3.10.11 打包，如需在 Windows 7 上使用程序需自行构建
+- Python ≥ 3.6
 - 依赖库：
   - pandas
   - matplotlib
@@ -31,15 +30,27 @@
 pip install pandas matplotlib
 ```
 
+Windows 7 使用：
+
+```bash
+pip install pandas matplotlib openpyxl
+```
+
 ## 自行构建
 
 ```bash
 pyinstaller ExamAnalysisTool.spec
 ```
 
+Windows 7 使用：
+
+```bash
+pyinstaller ExamAnalysisTool_Win7.spec
+```
+
 ## 使用说明
 
-1. **运行程序**：在终端中运行以下命令：
+1. **运行程序**：
 
    ```bash
    python ExamAnalysisTool.py
@@ -58,6 +69,9 @@ pyinstaller ExamAnalysisTool.spec
 |----------|--------|----------|
 | 1        | 张三  | 5        |
 | 1        | 李四  | 3        |
+
+| 考试编号 | 同学   | 年级排名 |
+|----------|--------|----------|
 | 2        | 张三  | 4        |
 | 2        | 李四  | 2        |
 
