@@ -22,7 +22,7 @@ class ExamAnalysisTool:
         self.root.after(100, self.process_queue)
 
     def create_widgets(self):
-        tk.Label(self.root, text="程序版本：v1.2.1\n\n已选择的成绩文件：").pack(pady=10)
+        tk.Label(self.root, text="程序版本：v1.2.2\n\n已选择的成绩文件：").pack(pady=10)
 
         self.file_listbox = tk.Listbox(self.root, selectmode=tk.MULTIPLE, width=50)
         self.file_listbox.pack(pady=5)
@@ -83,8 +83,8 @@ class ExamAnalysisTool:
             df = pd.read_excel(file)
 
             # 数据合法性检查
-            if '考试编号' not in df.columns or '同学' not in df.columns or '年级排名' not in df.columns:
-                self.queue.put(("error", f"文件 {os.path.basename(file)} \n\n缺少必要的列: '考试编号', '同学', '年级排名'"))
+            if '考试编号' not in df.columns or '姓名' not in df.columns or '级名' not in df.columns:
+                self.queue.put(("error", f"文件 {os.path.basename(file)} \n\n缺少必要的列: '考试编号', '姓名', '级名'"))
                 self.enable_buttons()  # 任务完成后启用按钮
                 return
 
@@ -109,8 +109,8 @@ class ExamAnalysisTool:
                     self.queue.put(("info", "操作已取消"))
                     self.enable_buttons()  # 任务完成后启用按钮
                     return
-                student = row['同学']
-                rank = row['年级排名']
+                student = row['姓名']
+                rank = row['级名']
 
                 # 将年级排名保存到字典中，以学生姓名为键
                 if student not in exam_data:
@@ -134,7 +134,7 @@ class ExamAnalysisTool:
             sorted_ranks = sorted(student_ranks.items())
 
             if len(sorted_ranks) < 2:
-                self.queue.put(("info", f"同学 {student} 在最近的 2 次考试中仅参加了 {len(sorted_ranks)} 次\n\n将跳过计算"))
+                self.queue.put(("info", f"学生 {student} 在最近的 2 次考试中仅参加了 {len(sorted_ranks)} 次\n\n将跳过计算"))
                 continue
 
             progress_entry = {'学生姓名': student}
@@ -219,10 +219,10 @@ class ExamAnalysisTool:
                 
                 df = pd.read_excel(file)
                 # 数据合法性检查
-                if '考试编号' not in df.columns or '同学' not in df.columns or '年级排名' not in df.columns:
+                if '考试编号' not in df.columns or '姓名' not in df.columns or '级名' not in df.columns:
                     response = messagebox.askyesno(
                         "缺少必要列",
-                        f"文件 {os.path.basename(file)} \n\n缺少必要的列: '考试编号', '同学', '年级排名'\n\n是否跳过该表格绘制折线图？"
+                        f"文件 {os.path.basename(file)} \n\n缺少必要的列: '考试编号', '姓名', '级名'\n\n是否跳过该表格绘制折线图？"
                     )
                     if not response:  # 用户选择不继续
                         self.enable_buttons()  # 任务完成后启用按钮
@@ -261,7 +261,7 @@ class ExamAnalysisTool:
             rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
             rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
-            students = combined_df['同学'].unique()
+            students = combined_df['姓名'].unique()
             self.progress_bar['maximum'] = len(students)
 
             # 询问用户选择保存目录
@@ -272,10 +272,10 @@ class ExamAnalysisTool:
                     return
 
             for idx, student in enumerate(students):
-                student_data = combined_df[combined_df['同学'] == student]
+                student_data = combined_df[combined_df['姓名'] == student]
                 try:
                     plt.figure()
-                    plt.plot(student_data['考试编号'], student_data['年级排名'], marker='o', label=student)
+                    plt.plot(student_data['考试编号'], student_data['级名'], marker='o', label=student)
                     plt.title(f'{student} 年级排名折线图')
                     plt.xlabel('考试编号')
                     plt.ylabel('年级排名')
@@ -341,8 +341,8 @@ class ExamAnalysisTool:
                 return
 
             # 数据合法性检查
-            if '考试编号' not in df.columns or '同学' not in df.columns or '年级排名' not in df.columns:
-                self.queue.put(("error", f"文件 {os.path.basename(file)} \n\n缺少必要的列: '考试编号', '同学', '年级排名'"))
+            if '考试编号' not in df.columns or '姓名' not in df.columns or '级名' not in df.columns:
+                self.queue.put(("error", f"文件 {os.path.basename(file)} \n\n缺少必要的列: '考试编号', '姓名', '级名'"))
                 self.enable_buttons()  # 任务完成后启用按钮
                 return
 
@@ -355,16 +355,16 @@ class ExamAnalysisTool:
             return
 
         # 对数据进行排序
-        combined_df.sort_values(by=['同学', '考试编号'], inplace=True)
+        combined_df.sort_values(by=['姓名', '考试编号'], inplace=True)
 
-        # 获取所有同学的唯一列表
-        students = combined_df['同学'].unique()
+        # 获取所有学生的唯一列表
+        students = combined_df['姓名'].unique()
 
         progress_data = []
 
-        # 为每个同学生成报表
+        # 为每个学生生成报表
         for student in students:
-            student_data = combined_df[combined_df['同学'] == student]
+            student_data = combined_df[combined_df['姓名'] == student]
             progress_data.append(student_data)
         
             if self.is_canceled:
@@ -378,9 +378,9 @@ class ExamAnalysisTool:
             self.enable_buttons()  # 任务完成后启用按钮
             return
 
-        # 保存每个同学的成绩
+        # 保存每个学生的成绩
         for student in students:
-            student_report = combined_df[combined_df['同学'] == student]
+            student_report = combined_df[combined_df['姓名'] == student]
             output_file = os.path.join(save_directory, f'{student}_成绩单.xlsx')
 
             # 检查文件是否已被占用
