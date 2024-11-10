@@ -56,12 +56,6 @@ pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf
 pyinstaller ExamAnalysisTool.spec
 ```
 
-Windows 7 使用：
-
-```bash
-pyinstaller ExamAnalysisTool_Win7.spec
-```
-
 ## 使用说明
 
 1. **运行程序**：
