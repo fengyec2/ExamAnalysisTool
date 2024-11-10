@@ -13,8 +13,15 @@
 ## 特性
 
 - 生成进退步系数报表
+![进退步系数报表](img\calculate_progress.png "进退步系数报表")
 - 生成年级排名折线图
+![年级排名折线图](img\generate_ranking_chart.jpg "年级排名折线图")
 - 生成历次考试成绩单
+![历次考试成绩单](img\generate_report.png "历次考试成绩单")
+
+## 更新日志
+
+[更新日志](CHANGELOG.md)
 
 ## 需求
 
@@ -27,16 +34,18 @@
 ## 安装依赖
 
 ```bash
-pip install pandas matplotlib
-```
-
-Windows 7 使用：
-
-```bash
 pip install pandas matplotlib openpyxl
 ```
 
 ## 自行构建
+
+使用 upx 压缩程序：
+
+```bash
+pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf --upx-dir "D:\Program Files (x86)\upx" ExamAnalysisTool.py
+```
+
+或者直接使用：
 
 ```bash
 pyinstaller ExamAnalysisTool.spec

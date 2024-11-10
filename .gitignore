@@ -1,0 +1,6 @@
+# 排除虚拟环境
+/.vEAT
+
+# 排除 PyInstaller 文件夹
+/build
+/dist
