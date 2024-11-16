@@ -4,3 +4,6 @@
 # 排除 PyInstaller 文件夹
 /build
 /dist
+
+# 排除 PyInstaller 的 SPEC 文件
+ExamAnalysisTool.spec

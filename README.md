@@ -86,12 +86,6 @@ pip install pyinstaller
 pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf --upx-dir "D:\Program Files (x86)\upx" ExamAnalysisTool.py
 ```
 
-或者直接使用：
-
-```bash
-pyinstaller ExamAnalysisTool.spec
-```
-
 ## 使用说明
 
 1. **运行程序**：
