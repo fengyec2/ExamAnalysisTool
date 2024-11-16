@@ -8,7 +8,7 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk
 import pandas as pd
 import matplotlib.pyplot as plt
-import webbrowser
+import matplotlib
 
 class FileHandler:
     """文件处理"""
@@ -183,6 +183,9 @@ class RankingChartGenerator:
     """生成年级排名折线图"""
     @staticmethod
     def generate_ranking_charts(filepaths, save_directory, is_canceled_callback, queue):
+        # 设置matplotlib中文支持
+        matplotlib.rcParams['font.sans-serif'] = ['SimHei']  # 设置中文字体为 SimHei（黑体）
+        matplotlib.rcParams['axes.unicode_minus'] = False    # 防止负号显示为方块
         combined_df = pd.DataFrame()
         duplicate_exam_numbers = set()
         all_exam_numbers = set()
