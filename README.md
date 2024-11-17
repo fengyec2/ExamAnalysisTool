@@ -69,7 +69,7 @@
 ## 安装依赖
 
 ```bash
-pip install pandas matplotlib openpyxl
+pip install pandas matplotlib openpyxl PyQt5
 ```
 
 ## 自行构建
