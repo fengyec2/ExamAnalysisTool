@@ -3,12 +3,15 @@
 import os
 import threading
 import queue
-import tkinter as tk
-from tkinter import filedialog, messagebox
-from tkinter import ttk
+# import tkinter as tk
+from tkinter import filedialog# , messagebox
+# from tkinter import ttk
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtWidgets import QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
+import sys
 
 class FileHandler:
     """文件处理"""
@@ -315,90 +318,69 @@ class HistoricalReportGenerator:
 
         queue.put(("info", "所有学生的成绩单已生成"))
 
-class ExamAnalysisToolGUI:
+class ExamAnalysisToolGUI(QWidget):
     """主页面"""
-    def __init__(self, root):
-        self.root = root
-        self.root.title("考试成绩分析工具")
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("考试成绩分析工具")
         self.file_handler = FileHandler()
         self.queue = queue.Queue()
-        self.is_canceled = False 
+        self.is_canceled = False
         
-        # 创建菜单栏
-        self.create_menu()
+        self.init_ui()
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.process_queue)
+        self.timer.start(100)
 
-        self.create_widgets()
-        self.root.after(100, self.process_queue)
+    def init_ui(self):
+        """初始化 UI"""
+        layout = QVBoxLayout()
 
-    def create_menu(self):
-        """创建菜单栏和关于菜单"""
-        menu_bar = tk.Menu(self.root)  # 创建菜单栏
+        self.file_label = QLabel("已选择的成绩文件：")
+        layout.addWidget(self.file_label)
 
-        # 创建帮助菜单
-        help_menu = tk.Menu(menu_bar, tearoff=0)
-        help_menu.add_command(label="关于", command=self.show_about)  # 添加“关于”项
-        menu_bar.add_cascade(label="帮助", menu=help_menu)  # 将帮助菜单添加到菜单栏
+        self.file_listbox = QListWidget()
+        layout.addWidget(self.file_listbox)
 
-        self.root.config(menu=menu_bar)  # 配置根窗口使用菜单栏
+        self.input_file_button = QPushButton("选择文件")
+        self.input_file_button.clicked.connect(self.load_input_files)
+        layout.addWidget(self.input_file_button)
 
-    def show_about(self):
-        """显示关于对话框"""
-        about_window = tk.Toplevel(self.root)  # 创建新窗口
-        about_window.title("关于")  # 设置窗口标题
-        about_window.geometry("400x300")  # 设置窗口大小
+        self.analyze_button = QPushButton("生成进退步系数报表")
+        self.analyze_button.clicked.connect(self.start_calculate_progress)
+        layout.addWidget(self.analyze_button)
 
-        # 显示程序信息
-        info_text = """
-        考试成绩分析工具
+        self.chart_button = QPushButton("生成年级排名折线图")
+        self.chart_button.clicked.connect(self.start_generate_ranking_charts)
+        layout.addWidget(self.chart_button)
 
-        版本: 1.3.0
-        作者: fengyec2
-        许可证: GPL-3.0 license
-        开源地址: https://github.com/fengyec2/ExamAnalysisTool
-        引用的第三方库:
-            - pandas
-            - matplotlib
-            - openpyxl
-            - tk
-        """
+        self.report_button = QPushButton("生成历次考试成绩单")
+        self.report_button.clicked.connect(self.start_generate_report)
+        layout.addWidget(self.report_button)
 
-        label = tk.Label(about_window, text=info_text, justify=tk.LEFT, padx=10, pady=10)
-        label.pack(fill="both", expand=True)
+        self.cancel_button = QPushButton("取消")
+        self.cancel_button.setDisabled(True)
+        self.cancel_button.clicked.connect(self.cancel_operation)
+        layout.addWidget(self.cancel_button)
 
-    def create_widgets(self):
-        tk.Label(self.root, text="已选择的成绩文件：").pack(pady=10)
-        self.file_listbox = tk.Listbox(self.root, selectmode=tk.MULTIPLE, width=50)
-        self.file_listbox.pack(pady=5)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        layout.addWidget(self.progress_bar)
 
-        self.input_file_button = tk.Button(self.root, text="选择文件", command=self.load_input_files)
-        self.input_file_button.pack(pady=5)
-
-        self.analyze_button = tk.Button(self.root, text="生成进退步系数报表", command=self.start_calculate_progress)
-        self.analyze_button.pack(pady=5)
-
-        self.chart_button = tk.Button(self.root, text="生成年级排名折线图", command=self.start_generate_ranking_charts)
-        self.chart_button.pack(pady=5)
-
-        self.report_button = tk.Button(self.root, text="生成历次考试成绩单", command=self.start_generate_report)
-        self.report_button.pack(pady=5)
-
-        self.cancel_button = tk.Button(self.root, text="取消", command=self.cancel_operation, state=tk.DISABLED)
-        self.cancel_button.pack(pady=5)
-
-        self.progress_bar = ttk.Progressbar(self.root, orient="horizontal", length=300, mode="determinate")
-        self.progress_bar.pack(pady=10)
+        self.setLayout(layout)
 
     def load_input_files(self):
         """文件选择并更新列表"""
-        self.file_listbox.delete(0, tk.END)
-        filepaths = self.file_handler.load_files()
+        self.file_listbox.clear()
+        filepaths, _ = QFileDialog.getOpenFileNames(self, "选择文件", "", "Excel files (*.xlsx)")
+        self.file_handler.filepaths = filepaths
         for filepath in filepaths:
-            self.file_listbox.insert(tk.END, os.path.basename(filepath))
+            self.file_listbox.addItem(os.path.basename(filepath))
 
     def start_calculate_progress(self):
         """独立线程处理"""
         self.is_canceled = False
-        self.progress_bar['value'] = 0
+        self.progress_bar.setValue(0)
         self.queue.queue.clear()
         self.disable_buttons()
         threading.Thread(target=self.calculate_progress_thread).start()
@@ -411,12 +393,12 @@ class ExamAnalysisToolGUI:
 
     def start_generate_ranking_charts(self):
         """独立线程处理"""
-        save_directory = filedialog.askdirectory(title="选择PDF保存目录")
+        save_directory = QFileDialog.getExistingDirectory(self, "选择PDF保存目录")
         if not save_directory:
             return
 
         self.is_canceled = False
-        self.progress_bar['value'] = 0
+        self.progress_bar.setValue(0)
         self.queue.queue.clear()
         self.disable_buttons()
         threading.Thread(target=self.generate_ranking_charts_thread, args=(save_directory,)).start()
@@ -429,12 +411,12 @@ class ExamAnalysisToolGUI:
 
     def start_generate_report(self):
         """独立线程处理"""
-        save_directory = filedialog.askdirectory(title="选择保存目录")
+        save_directory = QFileDialog.getExistingDirectory(self, "选择保存目录")
         if not save_directory:
             return
 
         self.is_canceled = False
-        self.progress_bar['value'] = 0
+        self.progress_bar.setValue(0)
         self.queue.queue.clear()
         self.disable_buttons()
         threading.Thread(target=self.generate_report_thread, args=(save_directory,)).start()
@@ -451,34 +433,36 @@ class ExamAnalysisToolGUI:
 
     def enable_buttons(self):
         """启用按钮"""
-        self.input_file_button.config(state=tk.NORMAL)
-        self.analyze_button.config(state=tk.NORMAL)
-        self.chart_button.config(state=tk.NORMAL)
-        self.report_button.config(state=tk.NORMAL)
-        self.cancel_button.config(state=tk.DISABLED)
+        self.input_file_button.setEnabled(True)
+        self.analyze_button.setEnabled(True)
+        self.chart_button.setEnabled(True)
+        self.report_button.setEnabled(True)
+        self.cancel_button.setDisabled(True)
 
     def disable_buttons(self):
         """禁用按钮"""
-        self.input_file_button.config(state=tk.DISABLED)
-        self.analyze_button.config(state=tk.DISABLED)
-        self.chart_button.config(state=tk.DISABLED)
-        self.report_button.config(state=tk.DISABLED)
-        self.cancel_button.config(state=tk.NORMAL)
+        self.input_file_button.setDisabled(True)
+        self.analyze_button.setDisabled(True)
+        self.chart_button.setDisabled(True)
+        self.report_button.setDisabled(True)
+        self.cancel_button.setEnabled(True)
 
     def process_queue(self):
         """信息处理"""
         while not self.queue.empty():
             msg_type, msg_content = self.queue.get()
             if msg_type == "info":
-                messagebox.showinfo("信息", msg_content)
+                QMessageBox.information(self, "信息", msg_content)
             elif msg_type == "warning":
-                messagebox.showwarning("警告", msg_content)
+                QMessageBox.warning(self, "警告", msg_content)
             elif msg_type == "error":
-                messagebox.showerror("错误", msg_content)
+                QMessageBox.critical(self, "错误", msg_content)
             elif msg_type == "progress":
-                self.progress_bar['value'] = msg_content
-        self.root.after(100, self.process_queue)
+                self.progress_bar.setValue(int(msg_content))
+
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = ExamAnalysisToolGUI(root)
-    root.mainloop()
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    window = ExamAnalysisToolGUI()
+    window.show()
+    sys.exit(app.exec_())
