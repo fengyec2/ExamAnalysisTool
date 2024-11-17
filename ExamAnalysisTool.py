@@ -3,14 +3,12 @@
 import os
 import threading
 import queue
-# import tkinter as tk
-from tkinter import filedialog# , messagebox
-# from tkinter import ttk
+from tkinter import filedialog
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
+from PyQt5 import QtWidgets, QtCore, Qt
+from PyQt5.QtWidgets import QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
 import sys
 
 class FileHandler:
@@ -323,10 +321,11 @@ class ExamAnalysisToolGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("考试成绩分析工具")
+        self.resize(600, 800)  # 设置窗口默认大小
         self.file_handler = FileHandler()
         self.queue = queue.Queue()
         self.is_canceled = False
-        
+
         self.init_ui()
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.process_queue)
@@ -340,6 +339,12 @@ class ExamAnalysisToolGUI(QWidget):
         layout.addWidget(self.file_label)
 
         self.file_listbox = QListWidget()
+        self.file_listbox.setAcceptDrops(True)  # 允许拖放操作
+        self.file_listbox.dragEnterEvent = self.dragEnterEvent  # 设置拖入事件
+        self.file_listbox.dropEvent = self.dropEvent  # 设置放下事件
+        self.file_listbox.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # 自定义右键菜单
+        self.file_listbox.customContextMenuRequested.connect(self.show_context_menu)  # 连接右键菜单
+
         layout.addWidget(self.file_listbox)
 
         self.input_file_button = QPushButton("选择文件")
@@ -369,13 +374,47 @@ class ExamAnalysisToolGUI(QWidget):
 
         self.setLayout(layout)
 
+    def dragEnterEvent(self, event):
+        """拖拽进入事件"""
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """拖拽放下事件"""
+        for url in event.mimeData().urls():
+            filepath = url.toLocalFile()
+            if filepath.endswith(".xlsx") and filepath not in self.file_handler.filepaths:
+                self.file_handler.filepaths.append(filepath)
+                self.file_listbox.addItem(filepath)
+
+    def show_context_menu(self, position):
+        """显示右键菜单"""
+        menu = QMenu()
+        add_action = QAction("添加...", self)
+        delete_action = QAction("删除选定文件", self)
+        add_action.triggered.connect(self.load_input_files)
+        delete_action.triggered.connect(lambda: self.remove_selected_file())
+        menu.addAction(add_action)
+        menu.addAction(delete_action)
+        menu.exec_(self.file_listbox.mapToGlobal(position))
+
+    def remove_selected_file(self):
+        """移除选中的文件"""
+        selected_items = self.file_listbox.selectedItems()
+        for item in selected_items:
+            filepath = item.text()
+            self.file_handler.filepaths.remove(filepath)
+            self.file_listbox.takeItem(self.file_listbox.row(item))
+
     def load_input_files(self):
         """文件选择并更新列表"""
-        self.file_listbox.clear()
         filepaths, _ = QFileDialog.getOpenFileNames(self, "选择文件", "", "Excel files (*.xlsx)")
-        self.file_handler.filepaths = filepaths
         for filepath in filepaths:
-            self.file_listbox.addItem(os.path.basename(filepath))
+            if filepath not in self.file_handler.filepaths:
+                self.file_handler.filepaths.append(filepath)
+                self.file_listbox.addItem(filepath)
 
     def start_calculate_progress(self):
         """独立线程处理"""
