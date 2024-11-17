@@ -1,4 +1,4 @@
-# File: exam_analysis_tool.py
+# File: ExamAnalysisTool.py
 
 import os
 import threading
@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
 import sys
 
 class FileHandler:
@@ -316,24 +316,26 @@ class HistoricalReportGenerator:
 
         queue.put(("info", "所有学生的成绩单已生成"))
 
-class ExamAnalysisToolGUI(QWidget):
+class ExamAnalysisToolGUI(QMainWindow):
     """主页面"""
     def __init__(self):
         super().__init__()
         self.setWindowTitle("考试成绩分析工具")
         self.resize(600, 800)  # 设置窗口默认大小
-        self.file_handler = FileHandler()
+        self.file_handler = FileHandler()  # 需要实现 FileHandler 类
         self.queue = queue.Queue()
         self.is_canceled = False
 
         self.init_ui()
+        self.setup_menu()  # 初始化菜单栏
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.process_queue)
         self.timer.start(100)
 
     def init_ui(self):
         """初始化 UI"""
-        layout = QVBoxLayout()
+        self.central_widget = QWidget()
+        layout = QVBoxLayout(self.central_widget)
 
         self.file_label = QLabel("已选择的成绩文件：")
         layout.addWidget(self.file_label)
@@ -371,7 +373,27 @@ class ExamAnalysisToolGUI(QWidget):
         self.progress_bar.setRange(0, 100)
         layout.addWidget(self.progress_bar)
 
-        self.setLayout(layout)
+        self.setCentralWidget(self.central_widget)
+
+    def setup_menu(self):
+        """设置菜单栏"""
+        menubar = self.menuBar()
+        help_menu = menubar.addMenu("帮助")
+
+        about_action = QAction("关于", self)
+        about_action.triggered.connect(self.show_about_dialog)
+        help_menu.addAction(about_action)
+
+    def show_about_dialog(self):
+        """显示关于对话框"""
+        about_message = """\
+        考试成绩分析工具
+        版本：1.3.1
+        作者: fengyec_2
+        许可证：GPL-3.0 license
+        项目地址：github.com/fengyec2/ExamAnalysisTool
+        """
+        QMessageBox.information(self, "关于", about_message)
 
     def dragEnterEvent(self, event):
         """处理拖拽进入事件"""
@@ -500,7 +522,6 @@ class ExamAnalysisToolGUI(QWidget):
                 QMessageBox.critical(self, "错误", msg_content)
             elif msg_type == "progress":
                 self.progress_bar.setValue(int(msg_content))
-
 
 if __name__ == "__main__":
     import sys
