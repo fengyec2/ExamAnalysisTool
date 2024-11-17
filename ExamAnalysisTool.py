@@ -7,7 +7,7 @@ from tkinter import filedialog
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-from PyQt5 import QtWidgets, QtCore, Qt
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
 import sys
 
@@ -339,9 +339,8 @@ class ExamAnalysisToolGUI(QWidget):
         layout.addWidget(self.file_label)
 
         self.file_listbox = QListWidget()
-        self.file_listbox.setAcceptDrops(True)  # 允许拖放操作
-        self.file_listbox.dragEnterEvent = self.dragEnterEvent  # 设置拖入事件
-        self.file_listbox.dropEvent = self.dropEvent  # 设置放下事件
+        self.file_listbox.setAcceptDrops(True)  # 允许拖拽
+        self.file_listbox.setDragEnabled(False)
         self.file_listbox.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # 自定义右键菜单
         self.file_listbox.customContextMenuRequested.connect(self.show_context_menu)  # 连接右键菜单
 
@@ -375,19 +374,22 @@ class ExamAnalysisToolGUI(QWidget):
         self.setLayout(layout)
 
     def dragEnterEvent(self, event):
-        """拖拽进入事件"""
+        """处理拖拽进入事件"""
         if event.mimeData().hasUrls():
-            event.accept()
+            print("DragEnterEvent: 文件拖入窗口")
+            event.acceptProposedAction()  # 接受拖拽操作
         else:
             event.ignore()
 
     def dropEvent(self, event):
-        """拖拽放下事件"""
+        """处理放置事件"""
         for url in event.mimeData().urls():
-            filepath = url.toLocalFile()
-            if filepath.endswith(".xlsx") and filepath not in self.file_handler.filepaths:
-                self.file_handler.filepaths.append(filepath)
-                self.file_listbox.addItem(filepath)
+            file_path = url.toLocalFile()
+            if file_path.endswith(".xlsx"):  # 仅接受 .xlsx 文件
+                if file_path not in self.file_handler.filepaths:
+                    print(f"DropEvent: 文件 {file_path} 被添加")
+                    self.file_handler.filepaths.append(file_path)
+                    self.file_listbox.addItem(os.path.basename(file_path))  # 显示文件名
 
     def show_context_menu(self, position):
         """显示右键菜单"""
@@ -414,7 +416,7 @@ class ExamAnalysisToolGUI(QWidget):
         for filepath in filepaths:
             if filepath not in self.file_handler.filepaths:
                 self.file_handler.filepaths.append(filepath)
-                self.file_listbox.addItem(filepath)
+                self.file_listbox.addItem(os.path.basename(filepath))
 
     def start_calculate_progress(self):
         """独立线程处理"""
@@ -499,8 +501,11 @@ class ExamAnalysisToolGUI(QWidget):
             elif msg_type == "progress":
                 self.progress_bar.setValue(int(msg_content))
 
+
 if __name__ == "__main__":
     import sys
+    from PyQt5 import QtWidgets
+
     app = QtWidgets.QApplication(sys.argv)
     window = ExamAnalysisToolGUI()
     window.show()
