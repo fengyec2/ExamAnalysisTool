@@ -16,15 +16,15 @@
 
 ## 特性
 
-- **生成进退步系数报表**
+- [x] **生成进退步系数报表**
 
 ![进退步系数报表](assets/img/calculate_progress.png "进退步系数报表")
 
-- **生成年级排名折线图**
+- [x] **生成年级排名折线图**
 
 ![年级排名折线图](assets/img/generate_ranking_chart.jpg "年级排名折线图")
 
-- **生成历次考试成绩单**
+- [x] **生成历次考试成绩单**
 
 ![历次考试成绩单](assets/img/generate_report.png "历次考试成绩单")
 
@@ -64,7 +64,7 @@
 - 依赖库：
   - pandas
   - matplotlib
-  - tkinter
+  - pyqt5
 
 ## 安装依赖
 
@@ -80,10 +80,8 @@ pip install pandas matplotlib openpyxl PyQt5
 pip install pyinstaller
 ```
 
-使用 upx 压缩程序：
-
 ```bash
-pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf --upx-dir "D:\Program Files (x86)\upx" ExamAnalysisTool.py
+pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf ExamAnalysisTool.py
 ```
 
 ## 使用说明
@@ -102,6 +100,13 @@ pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf
 ## 注意事项
 
 - 请确保 Excel 文件的格式正确
+
+## 清单
+
+- [ ] 生成成绩分析幻灯片
+- [ ] 支持文件拖拽添加
+- [ ] 使用线程池处理任务
+- [ ] 去重复造轮子
 
 ## 许可证
 
