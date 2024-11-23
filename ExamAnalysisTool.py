@@ -391,7 +391,7 @@ class ExamAnalysisToolGUI(QMainWindow):
         about_message = """\
         考试成绩分析工具
         版本：1.3.1
-        作者: fengyec_2
+        作者: fengyec2
         许可证：GPL-3.0 license
         项目地址：github.com/fengyec2/ExamAnalysisTool
         """
@@ -410,10 +410,12 @@ class ExamAnalysisToolGUI(QMainWindow):
         for url in event.mimeData().urls():
             file_path = url.toLocalFile()
             if file_path.endswith(".xlsx"):  # 仅接受 .xlsx 文件
+                print(f"DropEvent: 文件 {file_path} 被添加")
                 if file_path not in self.file_handler.filepaths:
-                    print(f"DropEvent: 文件 {file_path} 被添加")
                     self.file_handler.filepaths.append(file_path)
                     self.file_listbox.addItem(os.path.basename(file_path))  # 显示文件名
+            else:
+                print(f"DropEvent: 无效文件 {file_path} 被忽略")
 
     def show_context_menu(self, position):
         """显示右键菜单"""
@@ -429,10 +431,26 @@ class ExamAnalysisToolGUI(QMainWindow):
     def remove_selected_file(self):
         """移除选中的文件"""
         selected_items = self.file_listbox.selectedItems()
+        if not selected_items:
+            return  # 没有选中项，直接返回
+
         for item in selected_items:
+            # 获取显示的文件名
             filepath = item.text()
-            self.file_handler.filepaths.remove(filepath)
-            self.file_listbox.takeItem(self.file_listbox.row(item))
+
+            # 获取完整的文件路径
+            full_path = None
+            for file in self.file_handler.filepaths:
+                if os.path.basename(file) == filepath:
+                    full_path = file
+                    break
+
+            # 匹配完整路径删除
+            if full_path:
+                self.file_handler.filepaths.remove(full_path)
+                self.file_listbox.takeItem(self.file_listbox.row(item))
+            else:
+                print(f"文件路径 {filepath} 不在文件列表中，无法删除")
 
     def load_input_files(self):
         """文件选择并更新列表"""
