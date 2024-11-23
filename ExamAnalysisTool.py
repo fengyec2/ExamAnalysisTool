@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
 import sys
 
@@ -322,6 +323,7 @@ class ExamAnalysisToolGUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("考试成绩分析工具")
         self.resize(600, 800)  # 设置窗口默认大小
+        self.setWindowIcon(QIcon("assets\img\eat.ico"))
         self.file_handler = FileHandler()  # 需要实现 FileHandler 类
         self.queue = queue.Queue()
         self.is_canceled = False
