@@ -4,7 +4,7 @@
 
 ***
 
-一个简单的考试成绩分析工具，最新版可以在[这里](https://github.com/fengyec2/ExamAnalysisTool/releases/latest)下载
+一个简单的考试成绩分析工具，最新版可以在 [GitHub](https://github.com/fengyec2/ExamAnalysisTool/releases/latest) 或 [Gitee](https://gitee.com/fengyec/ExamAnalysisTool/releases/latest) 下载
 
 您可能会看到：
 
@@ -42,7 +42,7 @@
 | 2        | 张三  | 4        |
 | 2        | 李四  | 2        |
 
-[这里](https://github.com/fengyec2/ExamAnalysisTool/tree/main/assets/example)提供了一些示例 `.xlsx` 文件
+[这里](https://github.com/fengyec2/ExamAnalysisTool/tree/main/assets/example) 提供了一些示例 `.xlsx` 文件
 
 ## 更新日志
 
