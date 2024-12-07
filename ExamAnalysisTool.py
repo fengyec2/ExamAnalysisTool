@@ -327,6 +327,7 @@ class ExamAnalysisToolGUI(QMainWindow):
         self.file_handler = FileHandler()  # 需要实现 FileHandler 类
         self.queue = queue.Queue()
         self.is_canceled = False
+        self.setAcceptDrops(True)
 
         self.init_ui()
         self.setup_menu()  # 初始化菜单栏
