@@ -331,6 +331,7 @@ class ExamAnalysisToolGUI(QMainWindow):
         self.setWindowTitle("考试成绩分析工具")
         self.resize(600, 800)  # 设置窗口默认大小
         self.setWindowIcon(QIcon("assets\img\eat.ico"))
+        
         self.file_handler = FileHandler()  # 需要实现 FileHandler 类
         self.queue = queue.Queue()
         self.is_canceled = False
