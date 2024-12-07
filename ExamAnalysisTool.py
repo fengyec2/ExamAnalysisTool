@@ -10,6 +10,7 @@ import matplotlib
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtCore import Qt
 import sys
 
 class FileHandler:
@@ -333,6 +334,7 @@ class ExamAnalysisToolGUI(QMainWindow):
         self.queue = queue.Queue()
         self.is_canceled = False
         self.setAcceptDrops(True)
+        self.is_on_top = False
 
         self.init_ui()
         self.setup_menu()  # 初始化菜单栏
@@ -392,11 +394,25 @@ class ExamAnalysisToolGUI(QMainWindow):
         about_action.triggered.connect(self.show_about_dialog)
         help_menu.addAction(about_action)
 
+        toggle_top_action = QAction("置顶", self)
+        toggle_top_action.triggered.connect(self.toggle_top)
+        help_menu.addAction(toggle_top_action)
+
+    def toggle_top(self):
+        """切换窗口置顶状态"""
+        if self.is_on_top:
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)  # 取消置顶
+            self.is_on_top = False
+        else:
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)  # 设置置顶
+            self.is_on_top = True
+        self.show()  # 需要调用 show() 使窗口更新
+
     def show_about_dialog(self):
         """显示关于对话框"""
         about_message = """\
         考试成绩分析工具
-        版本：1.3.1
+        版本：1.3.2
         作者: fengyec2
         许可证：GPL-3.0 license
         项目地址：github.com/fengyec2/ExamAnalysisTool
