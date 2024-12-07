@@ -229,6 +229,11 @@ class RankingChartGenerator:
             if is_canceled_callback():
                 queue.put(("info", "操作已取消"))
                 return
+            
+            # 确保数据按照考试编号排序（全局排序）
+            combined_df['考试编号'] = pd.to_numeric(combined_df['考试编号'], errors='coerce')
+            combined_df = combined_df.dropna(subset=['考试编号'])  # 删除无效考试编号的行
+            combined_df = combined_df.sort_values(by='考试编号')
 
             student_data = combined_df[combined_df['姓名'] == student]
             try:
