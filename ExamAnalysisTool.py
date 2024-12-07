@@ -3,7 +3,7 @@
 import os
 import threading
 import queue
-from tkinter import filedialog
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
@@ -11,7 +11,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
 from PyQt5.QtCore import Qt
-import sys
+
 
 class FileHandler:
     """文件处理"""
@@ -20,8 +20,9 @@ class FileHandler:
 
     def load_files(self):
         """选择文件并更新列表"""
-
-        self.filepaths = filedialog.askopenfilenames(filetypes=[("Excel files", "*.xlsx")])
+        options = QFileDialog.Options()
+        filepaths, _ = QFileDialog.getOpenFileNames(None, "选择文件", "", "Excel files (*.xlsx)", options=options)
+        self.filepaths = filepaths
         return self.filepaths
 
 class ProgressCalculator:
@@ -98,7 +99,7 @@ class ProgressCalculator:
             progress_data.append(progress_entry)
 
         # 询问保存
-        save_directory = filedialog.askdirectory(title="选择保存目录")
+        save_directory = QFileDialog.getExistingDirectory(None, "选择保存目录")
         if not save_directory:
             queue.put(("info", "操作已取消"))
             return
