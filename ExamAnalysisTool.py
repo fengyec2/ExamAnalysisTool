@@ -195,7 +195,7 @@ class RankingChartGenerator:
                 
                 # 根据用户选择的文件格式保存文件
                 output_file = os.path.join(save_directory, f'{student}_年级排名折线图.{file_format}')
-                plt.savefig(output_file)
+                plt.savefig(output_file, dpi=300)  # 将 dpi 设置为 300
                 plt.close()
                 queue.put(("progress", ((idx + 1) / len(students)) * 100))
             except Exception as e:
