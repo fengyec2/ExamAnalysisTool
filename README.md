@@ -22,7 +22,7 @@
 
 - [x] **生成年级排名折线图**
 
-![年级排名折线图](assets/img/generate_ranking_chart.jpg "年级排名折线图")
+![年级排名折线图](assets/img/generate_ranking_chart.png "年级排名折线图")
 
 - [x] **生成历次考试成绩单**
 
