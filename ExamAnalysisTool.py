@@ -12,7 +12,6 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
 from PyQt5.QtCore import Qt
 
-
 class FileHandler:
     """文件处理"""
     def __init__(self):
@@ -25,14 +24,45 @@ class FileHandler:
         self.filepaths = filepaths
         return self.filepaths
 
+class DataProcessor:
+    """处理Excel文件的通用方法"""
+    @staticmethod
+    def read_excel(file, queue):
+        """读取Excel文件并返回DataFrame"""
+        try:
+            df = pd.read_excel(file)
+            return df
+        except Exception as e:
+            queue.put(("error", f"无法读取文件 {os.path.basename(file)}: {str(e)}"))
+            return None
+
+    @staticmethod
+    def validate_data(df, required_columns, queue):
+        """验证DataFrame的列是否完整"""
+        for col in required_columns:
+            if col not in df.columns:
+                queue.put(("error", f"文件缺少必要的列: '{col}'"))
+                return False
+        return True
+
+    @staticmethod
+    def check_duplicate_exam_numbers(current_exam_numbers, all_exam_numbers, queue):
+        """检查重复考试编号"""
+        duplicate_exam_numbers = set()
+        for exam_no in current_exam_numbers:
+            if exam_no in all_exam_numbers:
+                duplicate_exam_numbers.add(exam_no)
+            all_exam_numbers.add(exam_no)
+        return duplicate_exam_numbers
+
 class ProgressCalculator:
     """生成进退步系数报表"""
+    
     @staticmethod
     def calculate_progress(filepaths, is_canceled_callback, queue):
         exam_data = {}
         exam_numbers = []
         all_exam_numbers = set()  # 用于存储所有考试编号
-        duplicate_exam_numbers = set()  # 用于存储发现的重复考试编号
 
         # 计算进退步系数
         for file in filepaths:
@@ -40,23 +70,15 @@ class ProgressCalculator:
                 queue.put(("info", "操作已取消"))
                 return None
 
-            try:
-                df = pd.read_excel(file)
-            except Exception as e:
-                queue.put(("error", f"无法读取文件 {os.path.basename(file)}: {str(e)}"))
+            df = DataProcessor.read_excel(file, queue)
+            if df is None:
                 return None
 
-            # Data validation
-            if '考试编号' not in df.columns or '姓名' not in df.columns or '级名' not in df.columns:
-                queue.put(("error", f"文件 {os.path.basename(file)} 缺少必要的列: '考试编号', '姓名', '级名'"))
+            if not DataProcessor.validate_data(df, ['考试编号', '姓名', '级名'], queue):
                 return None
 
             current_exam_numbers = set(df['考试编号'])
-            for exam_no in current_exam_numbers:
-                if exam_no in all_exam_numbers:
-                    duplicate_exam_numbers.add(exam_no)  # 记录重复的考试编号
-                all_exam_numbers.add(exam_no)
-
+            duplicate_exam_numbers = DataProcessor.check_duplicate_exam_numbers(current_exam_numbers, all_exam_numbers, queue)
             if duplicate_exam_numbers:
                 queue.put(("error", f"发现重复的考试编号: {', '.join(map(str, duplicate_exam_numbers))}"))
                 return None
@@ -74,9 +96,8 @@ class ProgressCalculator:
         exam_numbers.sort(reverse=True)
         all_exam_numbers = exam_numbers
         progress_data = []
-        students = exam_data.keys()
 
-        for student in students:
+        for student in exam_data.keys():
             if is_canceled_callback():
                 queue.put(("info", "操作已取消"))
                 return None
@@ -112,86 +133,15 @@ class ProgressCalculator:
         except PermissionError:
             queue.put(("error", f"无法保存文件，因为文件 {output_file} 已被占用或打开。"))
 
-        """计算进退步系数"""
-        exam_data = {}
-        exam_numbers = []
-        all_exam_numbers = set()
-        duplicate_exam_numbers = set()
-
-        for file in filepaths:
-            if is_canceled_callback():
-                queue.put(("info", "操作已取消"))
-                return None
-
-            try:
-                df = pd.read_excel(file)
-            except Exception as e:
-                queue.put(("error", f"无法读取文件 {os.path.basename(file)}: {str(e)}"))
-                return None
-
-            # Data validation
-            if '考试编号' not in df.columns or '姓名' not in df.columns or '级名' not in df.columns:
-                queue.put(("error", f"文件 {os.path.basename(file)} 缺少必要的列: '考试编号', '姓名', '级名'"))
-                return None
-
-            current_exam_numbers = set(df['考试编号'])
-            for exam_no in current_exam_numbers:
-                if exam_no in all_exam_numbers:
-                    duplicate_exam_numbers.add(exam_no)
-                all_exam_numbers.add(exam_no)
-
-            if duplicate_exam_numbers:
-                queue.put(("error", f"发现重复的考试编号: {', '.join(map(str, duplicate_exam_numbers))}"))
-                return None
-
-            exam_number = df['考试编号'].max()
-            exam_numbers.append(exam_number)
-
-            for _, row in df.iterrows():
-                student = row['姓名']
-                rank = row['级名']
-                if student not in exam_data:
-                    exam_data[student] = {}
-                exam_data[student][exam_number] = rank
-
-        exam_numbers.sort(reverse=True)
-        all_exam_numbers = exam_numbers
-        progress_data = []
-        students = exam_data.keys()
-
-        for student in students:
-            if is_canceled_callback():
-                queue.put(("info", "操作已取消"))
-                return None
-
-            student_ranks = {exam_no: exam_data[student][exam_no] for exam_no in all_exam_numbers if exam_no in exam_data[student]}
-            sorted_ranks = sorted(student_ranks.items())
-
-            if len(sorted_ranks) < 2:
-                queue.put(("info", f"学生 {student} 在最近的 2 次考试中仅参加了 {len(sorted_ranks)} 次，将跳过计算"))
-                continue
-
-            progress_entry = {'学生姓名': student}
-            for exam_no, rank in sorted_ranks:
-                progress_entry[f'第{exam_no}次考试排名'] = rank
-
-            last_exam_rank = sorted_ranks[-2][1]
-            current_exam_rank = sorted_ranks[-1][1]
-            progress_coefficient = (last_exam_rank - current_exam_rank) / last_exam_rank
-            progress_entry['进退步系数'] = progress_coefficient
-            progress_data.append(progress_entry)
-
-        return progress_data
-
 class RankingChartGenerator:
     """生成年级排名折线图"""
+    
     @staticmethod
     def generate_ranking_charts(filepaths, save_directory, is_canceled_callback, queue):
         # 设置matplotlib中文支持
         matplotlib.rcParams['font.sans-serif'] = ['SimHei']  # 设置中文字体为 SimHei（黑体）
         matplotlib.rcParams['axes.unicode_minus'] = False    # 防止负号显示为方块
         combined_df = pd.DataFrame()
-        duplicate_exam_numbers = set()
         all_exam_numbers = set()
 
         for file in filepaths:
@@ -199,26 +149,18 @@ class RankingChartGenerator:
                 queue.put(("info", "操作已取消"))
                 return
 
-            try:
-                df = pd.read_excel(file)
-            except Exception as e:
-                queue.put(("error", f"无法读取文件 {os.path.basename(file)}: {str(e)}"))
-                return
+            df = DataProcessor.read_excel(file, queue)
+            if df is None:
+                return None
 
-            # Data validation
-            if '考试编号' not in df.columns or '姓名' not in df.columns or '级名' not in df.columns:
-                queue.put(("warning", f"文件 {os.path.basename(file)} 缺少必要的列: '考试编号', '姓名', '级名'"))
-                continue
+            if not DataProcessor.validate_data(df, ['考试编号', '姓名', '级名'], queue):
+                return None
 
             current_exam_numbers = set(df['考试编号'])
-            for exam_no in current_exam_numbers:
-                if exam_no in all_exam_numbers:
-                    duplicate_exam_numbers.add(exam_no)
-                all_exam_numbers.add(exam_no)
-
+            duplicate_exam_numbers = DataProcessor.check_duplicate_exam_numbers(current_exam_numbers, all_exam_numbers, queue)
             if duplicate_exam_numbers:
                 queue.put(("error", f"发现重复的考试编号: {', '.join(map(str, duplicate_exam_numbers))}"))
-                return
+                return None
 
             combined_df = pd.concat([combined_df, df], ignore_index=True)
 
@@ -231,7 +173,7 @@ class RankingChartGenerator:
             if is_canceled_callback():
                 queue.put(("info", "操作已取消"))
                 return
-            
+
             # 确保数据按照考试编号排序（全局排序）
             combined_df['考试编号'] = pd.to_numeric(combined_df['考试编号'], errors='coerce')
             combined_df = combined_df.dropna(subset=['考试编号'])  # 删除无效考试编号的行
@@ -244,7 +186,7 @@ class RankingChartGenerator:
                 plt.title(f'{student} 年级排名折线图')
                 plt.xlabel('考试编号')
                 plt.ylabel('年级排名')
-                plt.gca().invert_yaxis() # 翻转 Y 轴
+                plt.gca().invert_yaxis()  # 翻转 Y 轴
                 plt.legend()
                 plt.grid()
                 output_path = os.path.join(save_directory, f'{student}_年级排名折线图.pdf')
@@ -262,35 +204,25 @@ class HistoricalReportGenerator:
     @staticmethod
     def generate_report(filepaths, save_directory, is_canceled_callback, queue):
         combined_df = pd.DataFrame()
-        duplicate_exam_numbers = set()
         all_exam_numbers = set()
 
-        # 合并数据
         for file in filepaths:
             if is_canceled_callback():
                 queue.put(("info", "操作已取消"))
                 return
 
-            try:
-                df = pd.read_excel(file)
-            except Exception as e:
-                queue.put(("error", f"无法读取文件 {os.path.basename(file)}: {str(e)}"))
-                return
+            df = DataProcessor.read_excel(file, queue)
+            if df is None:
+                return None
 
-            # 检验数据
-            if '考试编号' not in df.columns or '姓名' not in df.columns or '级名' not in df.columns:
-                queue.put(("warning", f"文件 {os.path.basename(file)} 缺少必要的列: '考试编号', '姓名', '级名'"))
-                continue
+            if not DataProcessor.validate_data(df, ['考试编号', '姓名', '级名'], queue):
+                return None
 
             current_exam_numbers = set(df['考试编号'])
-            for exam_no in current_exam_numbers:
-                if exam_no in all_exam_numbers:
-                    duplicate_exam_numbers.add(exam_no)
-                all_exam_numbers.add(exam_no)
-
+            duplicate_exam_numbers = DataProcessor.check_duplicate_exam_numbers(current_exam_numbers, all_exam_numbers, queue)
             if duplicate_exam_numbers:
                 queue.put(("error", f"发现重复的考试编号: {', '.join(map(str, duplicate_exam_numbers))}"))
-                return
+                return None
 
             combined_df = pd.concat([combined_df, df], ignore_index=True)
 
@@ -330,16 +262,16 @@ class ExamAnalysisToolGUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("考试成绩分析工具")
         self.resize(600, 800)  # 设置窗口默认大小
-        self.setWindowIcon(QIcon("assets\img\eat.ico"))
+        self.setWindowIcon(QIcon("assets/img/eat.ico"))
         
-        self.file_handler = FileHandler()  # 需要实现 FileHandler 类
+        self.file_handler = FileHandler()
         self.queue = queue.Queue()
         self.is_canceled = False
         self.setAcceptDrops(True)
         self.is_on_top = False
 
         self.init_ui()
-        self.setup_menu()  # 初始化菜单栏
+        self.setup_menu()
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.process_queue)
         self.timer.start(100)
@@ -353,10 +285,10 @@ class ExamAnalysisToolGUI(QMainWindow):
         layout.addWidget(self.file_label)
 
         self.file_listbox = QListWidget()
-        self.file_listbox.setAcceptDrops(True)  # 允许拖拽
+        self.file_listbox.setAcceptDrops(True)
         self.file_listbox.setDragEnabled(False)
-        self.file_listbox.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # 自定义右键菜单
-        self.file_listbox.customContextMenuRequested.connect(self.show_context_menu)  # 连接右键菜单
+        self.file_listbox.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.file_listbox.customContextMenuRequested.connect(self.show_context_menu)
 
         layout.addWidget(self.file_listbox)
 
@@ -403,12 +335,12 @@ class ExamAnalysisToolGUI(QMainWindow):
     def toggle_top(self):
         """切换窗口置顶状态"""
         if self.is_on_top:
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)  # 取消置顶
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
             self.is_on_top = False
         else:
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)  # 设置置顶
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
             self.is_on_top = True
-        self.show()  # 需要调用 show() 使窗口更新
+        self.show()
 
     def show_about_dialog(self):
         """显示关于对话框"""
@@ -424,8 +356,7 @@ class ExamAnalysisToolGUI(QMainWindow):
     def dragEnterEvent(self, event):
         """处理拖拽进入事件"""
         if event.mimeData().hasUrls():
-            print("DragEnterEvent: 文件拖入窗口")
-            event.acceptProposedAction()  # 接受拖拽操作
+            event.acceptProposedAction()
         else:
             event.ignore()
 
@@ -433,13 +364,10 @@ class ExamAnalysisToolGUI(QMainWindow):
         """处理放置事件"""
         for url in event.mimeData().urls():
             file_path = url.toLocalFile()
-            if file_path.endswith(".xlsx"):  # 仅接受 .xlsx 文件
-                print(f"DropEvent: 文件 {file_path} 被添加")
+            if file_path.endswith(".xlsx"):
                 if file_path not in self.file_handler.filepaths:
                     self.file_handler.filepaths.append(file_path)
-                    self.file_listbox.addItem(os.path.basename(file_path))  # 显示文件名
-            else:
-                print(f"DropEvent: 无效文件 {file_path} 被忽略")
+                    self.file_listbox.addItem(os.path.basename(file_path))
 
     def show_context_menu(self, position):
         """显示右键菜单"""
@@ -456,25 +384,19 @@ class ExamAnalysisToolGUI(QMainWindow):
         """移除选中的文件"""
         selected_items = self.file_listbox.selectedItems()
         if not selected_items:
-            return  # 没有选中项，直接返回
+            return
 
         for item in selected_items:
-            # 获取显示的文件名
             filepath = item.text()
-
-            # 获取完整的文件路径
             full_path = None
             for file in self.file_handler.filepaths:
                 if os.path.basename(file) == filepath:
                     full_path = file
                     break
 
-            # 匹配完整路径删除
             if full_path:
                 self.file_handler.filepaths.remove(full_path)
                 self.file_listbox.takeItem(self.file_listbox.row(item))
-            else:
-                print(f"文件路径 {filepath} 不在文件列表中，无法删除")
 
     def load_input_files(self):
         """文件选择并更新列表"""
@@ -500,7 +422,7 @@ class ExamAnalysisToolGUI(QMainWindow):
 
     def start_generate_ranking_charts(self):
         """独立线程处理"""
-        save_directory = QFileDialog.getExistingDirectory(self, "选择PDF保存目录")
+        save_directory = QFileDialog.getExistingDirectory(self, "选择 PDF 保存目录")
         if not save_directory:
             return
 
@@ -518,7 +440,7 @@ class ExamAnalysisToolGUI(QMainWindow):
 
     def start_generate_report(self):
         """独立线程处理"""
-        save_directory = QFileDialog.getExistingDirectory(self, "选择保存目录")
+        save_directory = QFileDialog.getExistingDirectory(self, "选择 Excel 保存目录")
         if not save_directory:
             return
 
