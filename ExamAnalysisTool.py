@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QRadioButton
 from PyQt5.QtCore import Qt
 
 class FileHandler:
@@ -137,7 +137,7 @@ class RankingChartGenerator:
     """生成年级排名折线图"""
     
     @staticmethod
-    def generate_ranking_charts(filepaths, save_directory, is_canceled_callback, queue):
+    def generate_ranking_charts(filepaths, save_directory, is_canceled_callback, queue, file_format='pdf'):
         # 设置matplotlib中文支持
         matplotlib.rcParams['font.sans-serif'] = ['SimHei']  # 设置中文字体为 SimHei（黑体）
         matplotlib.rcParams['axes.unicode_minus'] = False    # 防止负号显示为方块
@@ -192,8 +192,10 @@ class RankingChartGenerator:
                 plt.gca().invert_yaxis()  # 翻转 Y 轴
                 plt.legend()
                 plt.grid()
-                output_path = os.path.join(save_directory, f'{student}_年级排名折线图.pdf')
-                plt.savefig(output_path)
+                
+                # 根据用户选择的文件格式保存文件
+                output_file = os.path.join(save_directory, f'{student}_年级排名折线图.{file_format}')
+                plt.savefig(output_file)
                 plt.close()
                 queue.put(("progress", ((idx + 1) / len(students)) * 100))
             except Exception as e:
@@ -307,6 +309,18 @@ class ExamAnalysisToolGUI(QMainWindow):
         self.chart_button = QPushButton("生成年级排名折线图")
         self.chart_button.clicked.connect(self.start_generate_ranking_charts)
         layout.addWidget(self.chart_button)
+
+        # 添加横向排列的单选按钮
+        self.radio_button_group = QtWidgets.QButtonGroup(self)
+        self.pdf_radio = QRadioButton("输出为 PDF")
+        self.png_radio = QRadioButton("输出为 PNG")
+        
+        self.pdf_radio.setChecked(True)  # 默认选择PDF
+
+        h_layout = QHBoxLayout()
+        h_layout.addWidget(self.pdf_radio)
+        h_layout.addWidget(self.png_radio)
+        layout.addLayout(h_layout)
 
         self.report_button = QPushButton("生成历次考试成绩单")
         self.report_button.clicked.connect(self.start_generate_report)
@@ -432,16 +446,19 @@ class ExamAnalysisToolGUI(QMainWindow):
         if not save_directory:
             return
 
+        # 获取用户选择的文件格式
+        file_format = 'pdf' if self.pdf_radio.isChecked() else 'png'
+
         self.is_canceled = False
         self.progress_bar.setValue(0)
         self.queue.queue.clear()
         self.disable_buttons()
-        threading.Thread(target=self.generate_ranking_charts_thread, args=(save_directory,)).start()
+        threading.Thread(target=self.generate_ranking_charts_thread, args=(save_directory, file_format)).start()
 
-    def generate_ranking_charts_thread(self, save_directory):
+    def generate_ranking_charts_thread(self, save_directory, file_format):
         """生成年级排名折线图"""
         RankingChartGenerator.generate_ranking_charts(
-            self.file_handler.filepaths, save_directory, lambda: self.is_canceled, self.queue)
+            self.file_handler.filepaths, save_directory, lambda: self.is_canceled, self.queue, file_format)
         self.enable_buttons()
 
     def start_generate_report(self):
@@ -473,6 +490,8 @@ class ExamAnalysisToolGUI(QMainWindow):
         self.chart_button.setEnabled(True)
         self.report_button.setEnabled(True)
         self.cancel_button.setDisabled(True)
+        self.pdf_radio.setEnabled(True)
+        self.png_radio.setEnabled(True)
 
     def disable_buttons(self):
         """禁用按钮"""
@@ -481,6 +500,8 @@ class ExamAnalysisToolGUI(QMainWindow):
         self.chart_button.setDisabled(True)
         self.report_button.setDisabled(True)
         self.cancel_button.setEnabled(True)
+        self.pdf_radio.setDisabled(True)
+        self.png_radio.setDisabled(True)
 
     def process_queue(self):
         """信息处理"""
