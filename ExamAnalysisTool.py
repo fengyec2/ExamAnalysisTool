@@ -206,6 +206,7 @@ class HistoricalReportGenerator:
         combined_df = pd.DataFrame()
         all_exam_numbers = set()
 
+        # 合并数据
         for file in filepaths:
             if is_canceled_callback():
                 queue.put(("info", "操作已取消"))
@@ -264,14 +265,14 @@ class ExamAnalysisToolGUI(QMainWindow):
         self.resize(600, 800)  # 设置窗口默认大小
         self.setWindowIcon(QIcon("assets/img/eat.ico"))
         
-        self.file_handler = FileHandler()
+        self.file_handler = FileHandler()  # 需要实现 FileHandler 类
         self.queue = queue.Queue()
         self.is_canceled = False
         self.setAcceptDrops(True)
         self.is_on_top = False
 
         self.init_ui()
-        self.setup_menu()
+        self.setup_menu()  # 初始化菜单栏
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.process_queue)
         self.timer.start(100)
@@ -285,10 +286,10 @@ class ExamAnalysisToolGUI(QMainWindow):
         layout.addWidget(self.file_label)
 
         self.file_listbox = QListWidget()
-        self.file_listbox.setAcceptDrops(True)
+        self.file_listbox.setAcceptDrops(True)  # 允许拖拽
         self.file_listbox.setDragEnabled(False)
-        self.file_listbox.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.file_listbox.customContextMenuRequested.connect(self.show_context_menu)
+        self.file_listbox.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # 自定义右键菜单
+        self.file_listbox.customContextMenuRequested.connect(self.show_context_menu)  # 连接右键菜单
 
         layout.addWidget(self.file_listbox)
 
@@ -335,12 +336,12 @@ class ExamAnalysisToolGUI(QMainWindow):
     def toggle_top(self):
         """切换窗口置顶状态"""
         if self.is_on_top:
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)  # 取消置顶
             self.is_on_top = False
         else:
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)  # 设置置顶
             self.is_on_top = True
-        self.show()
+        self.show()  # 需要调用 show() 使窗口更新
 
     def show_about_dialog(self):
         """显示关于对话框"""
@@ -356,7 +357,7 @@ class ExamAnalysisToolGUI(QMainWindow):
     def dragEnterEvent(self, event):
         """处理拖拽进入事件"""
         if event.mimeData().hasUrls():
-            event.acceptProposedAction()
+            event.acceptProposedAction()  # 接受拖拽操作
         else:
             event.ignore()
 
@@ -364,7 +365,7 @@ class ExamAnalysisToolGUI(QMainWindow):
         """处理放置事件"""
         for url in event.mimeData().urls():
             file_path = url.toLocalFile()
-            if file_path.endswith(".xlsx"):
+            if file_path.endswith(".xlsx"):  # 仅接受 .xlsx 文件
                 if file_path not in self.file_handler.filepaths:
                     self.file_handler.filepaths.append(file_path)
                     self.file_listbox.addItem(os.path.basename(file_path))
@@ -384,16 +385,18 @@ class ExamAnalysisToolGUI(QMainWindow):
         """移除选中的文件"""
         selected_items = self.file_listbox.selectedItems()
         if not selected_items:
-            return
+            return  # 没有选中项，直接返回
 
         for item in selected_items:
+            # 获取显示的文件名
             filepath = item.text()
+            # 获取完整的文件路径
             full_path = None
             for file in self.file_handler.filepaths:
                 if os.path.basename(file) == filepath:
                     full_path = file
                     break
-
+            # 匹配完整路径删除
             if full_path:
                 self.file_handler.filepaths.remove(full_path)
                 self.file_listbox.takeItem(self.file_listbox.row(item))
