@@ -186,6 +186,9 @@ class RankingChartGenerator:
                 plt.title(f'{student} 年级排名折线图')
                 plt.xlabel('考试编号')
                 plt.ylabel('年级排名')
+                # 设置 x 轴刻度为整数
+                x_ticks = student_data['考试编号'].astype(int)  # 取整数部分
+                plt.xticks(x_ticks)  # 设置 x 轴的刻度为整数
                 plt.gca().invert_yaxis()  # 翻转 Y 轴
                 plt.legend()
                 plt.grid()
