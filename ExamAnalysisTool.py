@@ -129,7 +129,7 @@ class ProgressCalculator:
         output_file = os.path.join(save_directory, "进退步系数.xlsx")
         try:
             pd.DataFrame(progress_data).to_excel(output_file, index=False)
-            queue.put(("info", f"进退步系数已保存至 {output_file}"))
+            queue.put(("info", f"进退步系数报表已保存至 {output_file}"))
         except PermissionError:
             queue.put(("error", f"无法保存文件，因为文件 {output_file} 已被占用或打开。"))
 
@@ -201,7 +201,7 @@ class RankingChartGenerator:
             except Exception as e:
                 queue.put(("error", f"生成学生 {student} 的图表时出现错误: {e}"))
 
-        queue.put(("info", "折线图已生成"))
+        queue.put(("info", "年级排名折线图已生成"))
 
 class HistoricalReportGenerator:
     """生成历次考试成绩单"""
@@ -260,7 +260,7 @@ class HistoricalReportGenerator:
             except PermissionError:
                 queue.put(("error", f"无法保存文件，因为文件 {student_report_path} 已被占用或打开。"))
 
-        queue.put(("info", "所有学生的成绩单已生成"))
+        queue.put(("info", "历次考试成绩单已生成"))
 
 class ExamAnalysisToolGUI(QMainWindow):
     """主页面"""
@@ -364,7 +364,7 @@ class ExamAnalysisToolGUI(QMainWindow):
         """显示关于对话框"""
         about_message = """\
         考试成绩分析工具
-        版本：1.3.2
+        版本：1.3.3
         作者: fengyec2
         许可证：GPL-3.0 license
         项目地址：github.com/fengyec2/ExamAnalysisTool
@@ -442,7 +442,7 @@ class ExamAnalysisToolGUI(QMainWindow):
 
     def start_generate_ranking_charts(self):
         """独立线程处理"""
-        save_directory = QFileDialog.getExistingDirectory(self, "选择 PDF 保存目录")
+        save_directory = QFileDialog.getExistingDirectory(self, "选择 PDF/PNG 保存目录")
         if not save_directory:
             return
 

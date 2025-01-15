@@ -104,9 +104,10 @@ pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf
 ## 清单
 
 - [ ] 生成成绩分析幻灯片
-- [ ] 支持文件拖拽添加
+- [x] 支持文件拖拽添加
 - [ ] 使用线程池处理任务
-- [ ] 去重复造轮子
+- [x] 去重复造轮子
+- [x] 支持输出不同格式图表
 
 ## 许可证
 
