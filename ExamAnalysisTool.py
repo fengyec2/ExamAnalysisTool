@@ -289,7 +289,7 @@ class ExamAnalysisToolGUI:
         self.file_label = ctk.CTkLabel(left_frame, text="已选择的成绩文件：")
         self.file_label.pack(pady=10)
 
-        self.file_listbox = tk.Listbox(left_frame, selectmode=tk.SINGLE, width=40, height=15)
+        self.file_listbox = tk.Listbox(left_frame, selectmode=tk.SINGLE, width=20, height=15, font=("SimHei", 22))
         self.file_listbox.pack(padx=10, pady=10, fill="both", expand=True)
 
         # 右侧区域
@@ -326,7 +326,7 @@ class ExamAnalysisToolGUI:
 
     def setup_menu(self):
         """设置菜单栏"""
-        self.root.option_add("*Font", "SimHei 18")  # 设置全局菜单字体
+        self.root.option_add("*Font", "SimHei 20")  # 设置全局菜单字体
         menubar = tk.Menu(self.root)
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
