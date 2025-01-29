@@ -326,6 +326,7 @@ class ExamAnalysisToolGUI:
 
     def setup_menu(self):
         """设置菜单栏"""
+        self.root.option_add("*Font", "SimHei 18")  # 设置全局菜单字体
         menubar = tk.Menu(self.root)
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
