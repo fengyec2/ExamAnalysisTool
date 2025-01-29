@@ -3,14 +3,12 @@
 import os
 import threading
 import queue
-import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QMessageBox, QFileDialog, QProgressBar, QListWidget, QPushButton, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QRadioButton
-from PyQt5.QtCore import Qt
+import customtkinter as ctk
+import tkinter as tk
+from tkinter import messagebox, filedialog
 
 class FileHandler:
     """文件处理"""
@@ -19,8 +17,7 @@ class FileHandler:
 
     def load_files(self):
         """选择文件并更新列表"""
-        options = QFileDialog.Options()
-        filepaths, _ = QFileDialog.getOpenFileNames(None, "选择文件", "", "Excel files (*.xlsx)", options=options)
+        filepaths = filedialog.askopenfilenames(title="选择文件", filetypes=[("Excel files", "*.xlsx")])
         self.filepaths = filepaths
         return self.filepaths
 
@@ -120,7 +117,7 @@ class ProgressCalculator:
             progress_data.append(progress_entry)
 
         # 询问保存
-        save_directory = QFileDialog.getExistingDirectory(None, "选择保存目录")
+        save_directory = filedialog.askdirectory(title="选择保存目录")
         if not save_directory:
             queue.put(("info", "操作已取消"))
             return
@@ -262,103 +259,90 @@ class HistoricalReportGenerator:
 
         queue.put(("info", "历次考试成绩单已生成"))
 
-class ExamAnalysisToolGUI(QMainWindow):
+class ExamAnalysisToolGUI:
     """主页面"""
     def __init__(self):
-        super().__init__()
-        self.setWindowTitle("考试成绩分析工具")
-        self.resize(600, 800)  # 设置窗口默认大小
-        self.setWindowIcon(QIcon("assets/img/eat.ico"))
+        self.root = ctk.CTk()  # 创建 CTk 窗口
+        self.root.title("考试成绩分析工具")
+        self.root.geometry("600x400")  # 设置窗口默认大小
         
         self.file_handler = FileHandler()  # 需要实现 FileHandler 类
         self.queue = queue.Queue()
         self.is_canceled = False
-        self.setAcceptDrops(True)
         self.is_on_top = False
+
+        self.file_format_variable = tk.StringVar(value="pdf")  # 单选按钮变量
 
         self.init_ui()
         self.setup_menu()  # 初始化菜单栏
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.process_queue)
-        self.timer.start(100)
+        self.timer = self.root.after(100, self.process_queue)
 
     def init_ui(self):
         """初始化 UI"""
-        self.central_widget = QWidget()
-        layout = QVBoxLayout(self.central_widget)
+        self.central_widget = ctk.CTkFrame(self.root)
+        self.central_widget.pack(padx=20, pady=20, fill="both", expand=True)
 
-        self.file_label = QLabel("已选择的成绩文件：")
-        layout.addWidget(self.file_label)
+        # 左侧区域
+        left_frame = ctk.CTkFrame(self.central_widget)
+        left_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
 
-        self.file_listbox = QListWidget()
-        self.file_listbox.setAcceptDrops(True)  # 允许拖拽
-        self.file_listbox.setDragEnabled(False)
-        self.file_listbox.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # 自定义右键菜单
-        self.file_listbox.customContextMenuRequested.connect(self.show_context_menu)  # 连接右键菜单
+        self.file_label = ctk.CTkLabel(left_frame, text="已选择的成绩文件：")
+        self.file_label.pack(pady=10)
 
-        layout.addWidget(self.file_listbox)
+        self.file_listbox = tk.Listbox(left_frame, selectmode=tk.SINGLE, width=40, height=15)
+        self.file_listbox.pack(padx=10, pady=10, fill="both", expand=True)
 
-        self.input_file_button = QPushButton("选择文件")
-        self.input_file_button.clicked.connect(self.load_input_files)
-        layout.addWidget(self.input_file_button)
+        # 右侧区域
+        right_frame = ctk.CTkFrame(self.central_widget)
+        right_frame.pack(side="right", padx=10, pady=10, fill="both", expand=True)
 
-        self.analyze_button = QPushButton("生成进退步系数报表")
-        self.analyze_button.clicked.connect(self.start_calculate_progress)
-        layout.addWidget(self.analyze_button)
+        self.input_file_button = ctk.CTkButton(right_frame, text="选择文件", command=self.load_input_files)
+        self.input_file_button.pack(pady=10)
 
-        self.chart_button = QPushButton("生成年级排名折线图")
-        self.chart_button.clicked.connect(self.start_generate_ranking_charts)
-        layout.addWidget(self.chart_button)
+        self.analyze_button = ctk.CTkButton(right_frame, text="生成进退步系数报表", command=self.start_calculate_progress)
+        self.analyze_button.pack(pady=10)
 
-        # 添加横向排列的单选按钮
-        self.radio_button_group = QtWidgets.QButtonGroup(self)
-        self.pdf_radio = QRadioButton("输出为 PDF")
-        self.png_radio = QRadioButton("输出为 PNG")
-        
-        self.pdf_radio.setChecked(True)  # 默认选择PDF
+        self.chart_button = ctk.CTkButton(right_frame, text="生成年级排名折线图", command=self.start_generate_ranking_charts)
+        self.chart_button.pack(pady=10)
 
-        h_layout = QHBoxLayout()
-        h_layout.addWidget(self.pdf_radio)
-        h_layout.addWidget(self.png_radio)
-        layout.addLayout(h_layout)
+    # 添加单选按钮
+        pdf_png_frame = ctk.CTkFrame(right_frame)
+        pdf_png_frame.pack(pady=10)
 
-        self.report_button = QPushButton("生成历次考试成绩单")
-        self.report_button.clicked.connect(self.start_generate_report)
-        layout.addWidget(self.report_button)
+        self.pdf_radio = ctk.CTkRadioButton(pdf_png_frame, text="输出为 PDF", variable=self.file_format_variable, value="pdf")
+        self.pdf_radio.pack(side="left", padx=10)
 
-        self.cancel_button = QPushButton("取消")
-        self.cancel_button.setDisabled(True)
-        self.cancel_button.clicked.connect(self.cancel_operation)
-        layout.addWidget(self.cancel_button)
+        self.png_radio = ctk.CTkRadioButton(pdf_png_frame, text="输出为 PNG", variable=self.file_format_variable, value="png")
+        self.png_radio.pack(side="left", padx=10)
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        layout.addWidget(self.progress_bar)
+        self.report_button = ctk.CTkButton(right_frame, text="生成历次考试成绩单", command=self.start_generate_report)
+        self.report_button.pack(pady=10)
 
-        self.setCentralWidget(self.central_widget)
+        self.cancel_button = ctk.CTkButton(right_frame, text="取消", state="disabled", command=self.cancel_operation)
+        self.cancel_button.pack(pady=10)
+
+        self.progress_bar = ctk.CTkProgressBar(right_frame, width=300)
+        self.progress_bar.pack(pady=10)
 
     def setup_menu(self):
         """设置菜单栏"""
-        menubar = self.menuBar()
-        help_menu = menubar.addMenu("帮助")
+        menubar = tk.Menu(self.root)
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="帮助", menu=help_menu)
 
-        about_action = QAction("关于", self)
-        about_action.triggered.connect(self.show_about_dialog)
-        help_menu.addAction(about_action)
+        help_menu.add_command(label="关于", command=self.show_about_dialog)
+        help_menu.add_command(label="置顶", command=self.toggle_top)
 
-        toggle_top_action = QAction("置顶", self)
-        toggle_top_action.triggered.connect(self.toggle_top)
-        help_menu.addAction(toggle_top_action)
+        self.root.config(menu=menubar)
 
     def toggle_top(self):
         """切换窗口置顶状态"""
         if self.is_on_top:
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)  # 取消置顶
+            self.root.attributes("-topmost", False)
             self.is_on_top = False
         else:
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)  # 设置置顶
+            self.root.attributes("-topmost", True)
             self.is_on_top = True
-        self.show()  # 需要调用 show() 使窗口更新
 
     def show_about_dialog(self):
         """显示关于对话框"""
@@ -369,88 +353,39 @@ class ExamAnalysisToolGUI(QMainWindow):
         许可证：GPL-3.0 license
         项目地址：github.com/fengyec2/ExamAnalysisTool
         """
-        QMessageBox.information(self, "关于", about_message)
-
-    def dragEnterEvent(self, event):
-        """处理拖拽进入事件"""
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()  # 接受拖拽操作
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        """处理放置事件"""
-        for url in event.mimeData().urls():
-            file_path = url.toLocalFile()
-            if file_path.endswith(".xlsx"):  # 仅接受 .xlsx 文件
-                if file_path not in self.file_handler.filepaths:
-                    self.file_handler.filepaths.append(file_path)
-                    self.file_listbox.addItem(os.path.basename(file_path))
-
-    def show_context_menu(self, position):
-        """显示右键菜单"""
-        menu = QMenu()
-        add_action = QAction("添加...", self)
-        delete_action = QAction("删除选定文件", self)
-        add_action.triggered.connect(self.load_input_files)
-        delete_action.triggered.connect(lambda: self.remove_selected_file())
-        menu.addAction(add_action)
-        menu.addAction(delete_action)
-        menu.exec_(self.file_listbox.mapToGlobal(position))
-
-    def remove_selected_file(self):
-        """移除选中的文件"""
-        selected_items = self.file_listbox.selectedItems()
-        if not selected_items:
-            return  # 没有选中项，直接返回
-
-        for item in selected_items:
-            # 获取显示的文件名
-            filepath = item.text()
-            # 获取完整的文件路径
-            full_path = None
-            for file in self.file_handler.filepaths:
-                if os.path.basename(file) == filepath:
-                    full_path = file
-                    break
-            # 匹配完整路径删除
-            if full_path:
-                self.file_handler.filepaths.remove(full_path)
-                self.file_listbox.takeItem(self.file_listbox.row(item))
+        messagebox.showinfo("关于", about_message)
 
     def load_input_files(self):
         """文件选择并更新列表"""
-        filepaths, _ = QFileDialog.getOpenFileNames(self, "选择文件", "", "Excel files (*.xlsx)")
+        filepaths = filedialog.askopenfilenames(title="选择文件", filetypes=[("Excel files", "*.xlsx")])
         for filepath in filepaths:
             if filepath not in self.file_handler.filepaths:
                 self.file_handler.filepaths.append(filepath)
-                self.file_listbox.addItem(os.path.basename(filepath))
+                self.file_listbox.insert(tk.END, os.path.basename(filepath))
 
     def start_calculate_progress(self):
         """独立线程处理"""
         self.is_canceled = False
-        self.progress_bar.setValue(0)
+        self.progress_bar.set(0)
         self.queue.queue.clear()
         self.disable_buttons()
         threading.Thread(target=self.calculate_progress_thread).start()
 
     def calculate_progress_thread(self):
         """计算进退步系数"""
-        ProgressCalculator.calculate_progress(
-            self.file_handler.filepaths, lambda: self.is_canceled, self.queue)
+        ProgressCalculator.calculate_progress(self.file_handler.filepaths, lambda: self.is_canceled, self.queue)
         self.enable_buttons()
 
     def start_generate_ranking_charts(self):
         """独立线程处理"""
-        save_directory = QFileDialog.getExistingDirectory(self, "选择 PDF/PNG 保存目录")
+        save_directory = filedialog.askdirectory(title="选择 PDF/PNG 保存目录")
         if not save_directory:
             return
 
-        # 获取用户选择的文件格式
-        file_format = 'pdf' if self.pdf_radio.isChecked() else 'png'
+        file_format = self.file_format_variable.get()
 
         self.is_canceled = False
-        self.progress_bar.setValue(0)
+        self.progress_bar.set(0)
         self.queue.queue.clear()
         self.disable_buttons()
         threading.Thread(target=self.generate_ranking_charts_thread, args=(save_directory, file_format)).start()
@@ -463,20 +398,19 @@ class ExamAnalysisToolGUI(QMainWindow):
 
     def start_generate_report(self):
         """独立线程处理"""
-        save_directory = QFileDialog.getExistingDirectory(self, "选择 Excel 保存目录")
+        save_directory = filedialog.askdirectory(title="选择 Excel 保存目录")
         if not save_directory:
             return
 
         self.is_canceled = False
-        self.progress_bar.setValue(0)
+        self.progress_bar.set(0)
         self.queue.queue.clear()
         self.disable_buttons()
         threading.Thread(target=self.generate_report_thread, args=(save_directory,)).start()
 
     def generate_report_thread(self, save_directory):
         """生成历次考试成绩单"""
-        HistoricalReportGenerator.generate_report(
-            self.file_handler.filepaths, save_directory, lambda: self.is_canceled, self.queue)
+        HistoricalReportGenerator.generate_report(self.file_handler.filepaths, save_directory, lambda: self.is_canceled, self.queue)
         self.enable_buttons()
 
     def cancel_operation(self):
@@ -485,42 +419,41 @@ class ExamAnalysisToolGUI(QMainWindow):
 
     def enable_buttons(self):
         """启用按钮"""
-        self.input_file_button.setEnabled(True)
-        self.analyze_button.setEnabled(True)
-        self.chart_button.setEnabled(True)
-        self.report_button.setEnabled(True)
-        self.cancel_button.setDisabled(True)
-        self.pdf_radio.setEnabled(True)
-        self.png_radio.setEnabled(True)
+        self.input_file_button.configure(state="normal")
+        self.analyze_button.configure(state="normal")
+        self.chart_button.configure(state="normal")
+        self.report_button.configure(state="normal")
+        self.cancel_button.configure(state="disabled")
+        self.pdf_radio.configure(state="normal")
+        self.png_radio.configure(state="normal")
 
     def disable_buttons(self):
         """禁用按钮"""
-        self.input_file_button.setDisabled(True)
-        self.analyze_button.setDisabled(True)
-        self.chart_button.setDisabled(True)
-        self.report_button.setDisabled(True)
-        self.cancel_button.setEnabled(True)
-        self.pdf_radio.setDisabled(True)
-        self.png_radio.setDisabled(True)
+        self.input_file_button.configure(state="disabled")
+        self.analyze_button.configure(state="disabled")
+        self.chart_button.configure(state="disabled")
+        self.report_button.configure(state="disabled")
+        self.cancel_button.configure(state="normal")
+        self.pdf_radio.configure(state="disabled")
+        self.png_radio.configure(state="disabled")
 
     def process_queue(self):
         """信息处理"""
         while not self.queue.empty():
             msg_type, msg_content = self.queue.get()
             if msg_type == "info":
-                QMessageBox.information(self, "信息", msg_content)
+                messagebox.showinfo("信息", msg_content)
             elif msg_type == "warning":
-                QMessageBox.warning(self, "警告", msg_content)
+                messagebox.showwarning("警告", msg_content)
             elif msg_type == "error":
-                QMessageBox.critical(self, "错误", msg_content)
+                messagebox.showerror("错误", msg_content)
             elif msg_type == "progress":
-                self.progress_bar.setValue(int(msg_content))
+                self.progress_bar.set(int(msg_content))
+
+    def run(self):
+        """运行应用"""
+        self.root.mainloop()
 
 if __name__ == "__main__":
-    import sys
-    from PyQt5 import QtWidgets
-
-    app = QtWidgets.QApplication(sys.argv)
-    window = ExamAnalysisToolGUI()
-    window.show()
-    sys.exit(app.exec_())
+    app = ExamAnalysisToolGUI()
+    app.run()
