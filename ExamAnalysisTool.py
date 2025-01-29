@@ -305,7 +305,7 @@ class ExamAnalysisToolGUI:
         self.chart_button = ctk.CTkButton(right_frame, text="生成年级排名折线图", command=self.start_generate_ranking_charts)
         self.chart_button.pack(pady=10)
 
-    # 添加单选按钮
+        # 添加单选按钮
         pdf_png_frame = ctk.CTkFrame(right_frame)
         pdf_png_frame.pack(pady=10)
 
@@ -349,7 +349,7 @@ class ExamAnalysisToolGUI:
         """显示关于对话框"""
         about_message = """\
         考试成绩分析工具
-        版本：1.3.3
+        版本：1.4.0
         作者: fengyec2
         许可证：GPL-3.0 license
         项目地址：github.com/fengyec2/ExamAnalysisTool
@@ -449,7 +449,8 @@ class ExamAnalysisToolGUI:
             elif msg_type == "error":
                 messagebox.showerror("错误", msg_content)
             elif msg_type == "progress":
-                self.progress_bar.set(int(msg_content))
+                self.progress_bar.set(msg_content)
+        self.timer = self.root.after(100, self.process_queue)
 
     def run(self):
         """运行应用"""

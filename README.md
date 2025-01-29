@@ -64,12 +64,13 @@
 - 依赖库：
   - pandas
   - matplotlib
-  - pyqt5
+  - openpyxl
+  - customtkinter
 
 ## 安装依赖
 
 ```bash
-pip install pandas matplotlib openpyxl PyQt5
+pip install pandas matplotlib openpyxl customtkinter
 ```
 
 ## 自行构建
