@@ -194,10 +194,11 @@ class RankingChartGenerator:
                 output_file = os.path.join(save_directory, f'{student}_年级排名折线图.{file_format}')
                 plt.savefig(output_file, dpi=300)  # 将 dpi 设置为 300
                 plt.close()
-                queue.put(("progress", ((idx + 1) / len(students)) * 100))
+                queue.put(("progress", (idx + 1) / len(students)))
             except Exception as e:
                 queue.put(("error", f"生成学生 {student} 的图表时出现错误: {e}"))
 
+        queue.put(("progress", 1.0))
         queue.put(("info", "年级排名折线图已生成"))
 
 class HistoricalReportGenerator:
@@ -253,10 +254,11 @@ class HistoricalReportGenerator:
             try:
                 # 包含所有列
                 student_data.to_excel(student_report_path, index=False)
-                queue.put(("progress", ((idx + 1) / len(students)) * 100))
+                queue.put(("progress", (idx + 1) / len(students)))
             except PermissionError:
                 queue.put(("error", f"无法保存文件，因为文件 {student_report_path} 已被占用或打开。"))
 
+        queue.put(("progress", 1.0))
         queue.put(("info", "历次考试成绩单已生成"))
 
 class ExamAnalysisToolGUI:
