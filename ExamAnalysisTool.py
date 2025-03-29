@@ -291,6 +291,15 @@ class FileCard(ctk.CTkFrame):
                                       command=self._on_remove)
         self.remove_btn.pack(side="right", padx=5)
 
+        # 添加悬停效果
+        self.bind("<Enter>", lambda e: self.configure(fg_color=("gray85", "gray15")))
+        self.bind("<Leave>", lambda e: self.configure(fg_color=("gray90", "gray13")))
+
+        # 添加文件类型校验图标
+        file_ext = os.path.splitext(self.filepath)[1].lower()
+        icon = "📊" if file_ext == ".xlsx" else "❓"
+        self.icon_label.configure(text=icon)
+
     def _on_remove(self):
         if self.remove_callback:
             self.remove_callback(self.filepath)
