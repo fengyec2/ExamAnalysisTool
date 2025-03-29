@@ -14,6 +14,8 @@
 
 等等各种高血压写法
 
+![主页面](assets/img/main_customtkinter.png "主页面")
+
 ## 特性
 
 - [x] **生成进退步系数报表**
@@ -105,7 +107,7 @@ pyinstaller --onefile --windowed --hidden-import matplotlib.backends.backend_pdf
 ## 清单
 
 - [ ] 生成成绩分析幻灯片
-- [x] 支持文件拖拽添加
+- [ ] 支持文件拖拽添加
 - [ ] 使用线程池处理任务
 - [x] 去重复造轮子
 - [x] 支持输出不同格式图表

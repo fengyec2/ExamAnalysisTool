@@ -396,7 +396,7 @@ class ExamAnalysisToolGUI:
         """显示关于对话框"""
         about_message = """\
         考试成绩分析工具
-        版本：1.4.0
+        版本：1.4.1
         作者: fengyec2
         许可证：GPL-3.0 license
         项目地址：github.com/fengyec2/ExamAnalysisTool
