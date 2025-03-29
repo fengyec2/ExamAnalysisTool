@@ -261,12 +261,47 @@ class HistoricalReportGenerator:
         queue.put(("progress", 1.0))
         queue.put(("info", "历次考试成绩单已生成"))
 
+class FileCard(ctk.CTkFrame):
+    def __init__(self, master, filepath, remove_callback=None):
+        super().__init__(master, fg_color=("gray90", "gray13"))
+        self.filepath = filepath
+        self.remove_callback = remove_callback
+        self._create_widgets()
+
+    def _create_widgets(self):
+        # 文件图标
+        self.icon_label = ctk.CTkLabel(self, text="📄", width=30)
+        self.icon_label.pack(side="left", padx=5)
+
+        # 文件名和路径
+        text_frame = ctk.CTkFrame(self, fg_color="transparent")
+        text_frame.pack(side="left", fill="x", expand=True)
+        
+        self.name_label = ctk.CTkLabel(text_frame, text=os.path.basename(self.filepath), 
+                                      font=ctk.CTkFont(weight="bold"))
+        self.name_label.pack(anchor="w")
+        
+        self.path_label = ctk.CTkLabel(text_frame, text=self.filepath, 
+                                      text_color=("gray40", "gray60"), font=ctk.CTkFont(size=12))
+        self.path_label.pack(anchor="w")
+
+        # 删除按钮
+        self.remove_btn = ctk.CTkButton(self, text="×", width=30, height=30, 
+                                      fg_color="transparent", hover_color=("gray80", "gray20"),
+                                      command=self._on_remove)
+        self.remove_btn.pack(side="right", padx=5)
+
+    def _on_remove(self):
+        if self.remove_callback:
+            self.remove_callback(self.filepath)
+        self.destroy()
+
 class ExamAnalysisToolGUI:
     """主页面"""
     def __init__(self):
         self.root = ctk.CTk()  # 创建 CTk 窗口
         self.root.title("考试成绩分析工具")
-        self.root.geometry("600x400")  # 设置窗口默认大小
+        self.root.geometry("800x400")  # 设置窗口默认大小
         
         self.file_handler = FileHandler()  # 需要实现 FileHandler 类
         self.queue = queue.Queue()
@@ -278,6 +313,7 @@ class ExamAnalysisToolGUI:
         self.init_ui()
         self.setup_menu()  # 初始化菜单栏
         self.timer = self.root.after(100, self.process_queue)
+        self.progress_bar.set(0)
 
     def init_ui(self):
         """初始化 UI"""
@@ -291,8 +327,8 @@ class ExamAnalysisToolGUI:
         self.file_label = ctk.CTkLabel(left_frame, text="已选择的成绩文件：")
         self.file_label.pack(pady=10)
 
-        self.file_listbox = tk.Listbox(left_frame, selectmode=tk.SINGLE, width=20, height=15, font=("SimHei", 22))
-        self.file_listbox.pack(padx=10, pady=10, fill="both", expand=True)
+        self.file_scrollframe = ctk.CTkScrollableFrame(left_frame, width=250, height=200)
+        self.file_scrollframe.pack(padx=10, pady=10, fill="both", expand=True)
 
         # 右侧区域
         right_frame = ctk.CTkFrame(self.central_widget)
@@ -360,11 +396,25 @@ class ExamAnalysisToolGUI:
 
     def load_input_files(self):
         """文件选择并更新列表"""
-        filepaths = filedialog.askopenfilenames(title="选择文件", filetypes=[("Excel files", "*.xlsx")])
-        for filepath in filepaths:
-            if filepath not in self.file_handler.filepaths:
-                self.file_handler.filepaths.append(filepath)
-                self.file_listbox.insert(tk.END, os.path.basename(filepath))
+        filepaths = filedialog.askopenfilenames(filetypes=[("Excel files", "*.xlsx")])
+        self._add_files(filepaths)
+
+    def _add_files(self, filepaths):
+        """统一添加文件方法"""
+        for fp in filepaths:
+            if fp not in self.file_handler.filepaths:
+                self.file_handler.filepaths.append(fp)
+                card = FileCard(
+                    self.file_scrollframe, 
+                    fp, 
+                    remove_callback=self._remove_file
+                )
+                card.pack(fill="x", pady=2)
+
+    def _remove_file(self, filepath):
+        """删除文件回调"""
+        if filepath in self.file_handler.filepaths:
+            self.file_handler.filepaths.remove(filepath)
 
     def start_calculate_progress(self):
         """独立线程处理"""
